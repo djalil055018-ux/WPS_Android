@@ -1,4 +1,4 @@
-name: Build WPS VPN APK v13
+name: Build WPS VPN APK v1.0
 
 on:
   workflow_dispatch:
@@ -12,8 +12,8 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Workflow marker v13
-        run: echo "WPS VPN v13 - WPS User-Agent and subscription refresh"
+      - name: Workflow marker v1.0
+        run: echo "WPS VPN v1.0 - WPS User-Agent and subscription refresh"
 
       - name: Checkout WPS build kit
         uses: actions/checkout@v7
@@ -62,10 +62,10 @@ jobs:
           fileName: libv2ray.aar
           out-file-path: upstream/V2rayNG/app/libs/
 
-      - name: Apply WPS UI and subscription refresh v13
+      - name: Apply WPS UI and subscription refresh v1.0
         shell: bash
         run: |
-          python3 tools/patch_v2rayng_v13.py             --source upstream/V2rayNG             --kit-root "$GITHUB_WORKSPACE"
+          python3 tools/patch_v2rayng_v1.0.py             --source upstream/V2rayNG             --kit-root "$GITHUB_WORKSPACE"
 
       - name: Prepare Android project
         shell: bash
@@ -95,9 +95,9 @@ jobs:
       - name: Upload WPS APK
         uses: actions/upload-artifact@v7
         with:
-          name: WPS-APK-v13
+          name: WPS-APK-v1.0
           path: |
-            WPS-v13-test.apk
-            WPS-v13-test.apk.sha256
+            WPS-v1.0.apk
+            WPS-v1.0.apk.sha256
           if-no-files-found: error
           retention-days: 30
