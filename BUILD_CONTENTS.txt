@@ -1,0 +1,12 @@
+WinPhoneStoreVPN Build Kit
+==========================
+.github/workflows/build-apk.yml   Automated cloud APK build
+assets/19523.png                  Original user-provided logo
+assets/wps_logo.png               Processed transparent UI logo
+assets/app_icon_512.png           Store/preview icon
+assets/icons/...                  Android launcher icons
+tools/patch_v2rayng.py            Branding, one-button UI and subscription patch
+build-local-windows.ps1           Windows local build
+build-local-linux-macos.sh        Linux/macOS local build
+README_RU.md                      Russian instructions
+LICENSE_NOTICE.md                 Upstream GPL notice
