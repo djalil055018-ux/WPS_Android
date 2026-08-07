@@ -1,0 +1,103 @@
+name: Build WPS VPN APK v13
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Workflow marker v13
+        run: echo "WPS VPN v13 - WPS User-Agent and subscription refresh"
+
+      - name: Checkout WPS build kit
+        uses: actions/checkout@v7
+
+      - name: Checkout v2rayNG 2.2.6 with native submodules
+        uses: actions/checkout@v7
+        with:
+          repository: 2dust/v2rayNG
+          ref: 2.2.6
+          path: upstream
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up Android SDK 37
+        uses: android-actions/setup-android@v4
+        with:
+          log-accepted-android-sdk-licenses: false
+          cmdline-tools-version: '14742923'
+          packages: 'platforms;android-37.0 build-tools;37.0.0 platform-tools'
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Install Android NDK
+        shell: bash
+        run: |
+          echo "y" | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"             --channel=0             --install "ndk;29.0.14206865"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865" >> "$GITHUB_ENV"
+
+      - name: Build native hev-socks5-tunnel library
+        working-directory: upstream
+        shell: bash
+        run: |
+          bash compile-hevtun.sh
+          cp -r libs V2rayNG/app/
+
+      - name: Download libv2ray AAR
+        uses: robinraju/release-downloader@v1.13
+        with:
+          repository: 2dust/AndroidLibXrayLite
+          tag: v26.6.27
+          fileName: libv2ray.aar
+          out-file-path: upstream/V2rayNG/app/libs/
+
+      - name: Apply WPS UI and subscription refresh v13
+        shell: bash
+        run: |
+          python3 tools/patch_v2rayng_v13.py             --source upstream/V2rayNG             --kit-root "$GITHUB_WORKSPACE"
+
+      - name: Prepare Android project
+        shell: bash
+        run: echo "sdk.dir=$ANDROID_HOME" > upstream/V2rayNG/local.properties
+
+      - name: Build WPS test APK
+        working-directory: upstream/V2rayNG
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assemblePlaystoreDebug --no-daemon --stacktrace
+
+      - name: Collect WPS APK
+        shell: bash
+        run: |
+          APK="$(find upstream/V2rayNG/app/build/outputs/apk/playstore/debug -type f -name '*.apk' | head -n 1)"
+          if [ -z "$APK" ]; then
+            echo "APK not found. Available files:"
+            find upstream/V2rayNG/app/build/outputs/apk -type f -name '*.apk' -print || true
+            exit 1
+          fi
+          cp "$APK" WPS-v13-test.apk
+          sha256sum WPS-v13-test.apk > WPS-v13-test.apk.sha256
+
+      - name: Upload WPS APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: WPS-APK-v13
+          path: |
+            WPS-v13-test.apk
+            WPS-v13-test.apk.sha256
+          if-no-files-found: error
+          retention-days: 30
