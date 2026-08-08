@@ -89,8 +89,8 @@ jobs:
             find upstream/V2rayNG/app/build/outputs/apk -type f -name '*.apk' -print || true
             exit 1
           fi
-          cp "$APK" WPS-v13-test.apk
-          sha256sum WPS-v13-test.apk > WPS-v13-test.apk.sha256
+          cp "$APK" WPS-v1.0.apk
+          sha256sum WPS-v1.0.apk > WPS-v1.0.apk.sha256
 
       - name: Upload WPS APK
         uses: actions/upload-artifact@v7
