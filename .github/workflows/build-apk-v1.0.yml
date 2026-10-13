@@ -1,6 +1,13 @@
-name: Build WPS VPN APK v1.0
+name: Build PAUK VPN APK v1.1
 
 on:
+  push:
+    paths:
+      - '.github/workflows/build-apk-v1.0.yml'
+      - 'assets/**'
+      - 'tools/**'
+      - '*.md'
+      - 'build-local-*'
   workflow_dispatch:
 
 permissions:
@@ -13,7 +20,7 @@ jobs:
 
     steps:
       - name: Workflow marker v1.0
-        run: echo "WPS VPN v1.0 - WPS User-Agent and subscription refresh"
+        run: echo "PAUK VPN v1.1 - PAUK branding, launcher icon and subscription refresh"
 
       - name: Checkout WPS build kit
         uses: actions/checkout@v7
@@ -62,7 +69,7 @@ jobs:
           fileName: libv2ray.aar
           out-file-path: upstream/V2rayNG/app/libs/
 
-      - name: Apply WPS UI and subscription refresh v1.0
+      - name: Apply PAUK UI, icons and subscription refresh v1.1
         shell: bash
         run: |
           python3 tools/patch_v2rayng_v1.0.py             --source upstream/V2rayNG             --kit-root "$GITHUB_WORKSPACE"
@@ -71,7 +78,7 @@ jobs:
         shell: bash
         run: echo "sdk.dir=$ANDROID_HOME" > upstream/V2rayNG/local.properties
 
-      - name: Build WPS test APK
+      - name: Build PAUK Android APK
         working-directory: upstream/V2rayNG
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g
@@ -80,7 +87,7 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assemblePlaystoreDebug --no-daemon --stacktrace
 
-      - name: Collect WPS APK
+      - name: Collect PAUK APK
         shell: bash
         run: |
           APK="$(find upstream/V2rayNG/app/build/outputs/apk/playstore/debug -type f -name '*.apk' | head -n 1)"
@@ -89,15 +96,15 @@ jobs:
             find upstream/V2rayNG/app/build/outputs/apk -type f -name '*.apk' -print || true
             exit 1
           fi
-          cp "$APK" WPS-v1.0.apk
-          sha256sum WPS-v1.0.apk > WPS-v1.0.apk.sha256
+          cp "$APK" PAUK-v1.1.apk
+          sha256sum PAUK-v1.1.apk > PAUK-v1.1.apk.sha256
 
-      - name: Upload WPS APK
+      - name: Upload PAUK APK
         uses: actions/upload-artifact@v7
         with:
-          name: WPS-APK-v1.0
+          name: PAUK-APK-v1.1
           path: |
-            WPS-v1.0.apk
-            WPS-v1.0.apk.sha256
+            PAUK-v1.1.apk
+            PAUK-v1.1.apk.sha256
           if-no-files-found: error
           retention-days: 30

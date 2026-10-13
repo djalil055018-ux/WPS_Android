@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Create the WPS VPN Android client from v2rayNG 2.2.6.
+"""Create the PAUK VPN Android client from v2rayNG 2.2.6.
 
 Changes:
-- application/launcher name: WPS
+- application/launcher name: PAUK
 - clean premium one-screen UI without settings
 - no embedded subscription URL
 - user adds/replaces/removes their own HTTPS subscription
 - server list is visible on the main screen
 - user can select a server and test real delay for one or all servers
-- WPS-branded foreground VPN notification icon
+- PAUK-branded app, launcher and VPN notification icons
 - automatic Remnawave-compatible HWID and device headers
 - legacy embedded Win Phone Store subscription is removed on first launch
 - safe layout for display cutouts and system navigation
@@ -17,15 +17,21 @@ from __future__ import annotations
 
 import argparse
 import re
-import shutil
 import sys
 from pathlib import Path
 
-APP_NAME = "WPS"
+APP_NAME = "PAUK"
 APPLICATION_ID = "name.winphonestore.wps"
 USER_SUBSCRIPTION_ID = "wps-user-subscription"
 LEGACY_SUBSCRIPTION_ID = "win-phone-store-embedded"
-PATCH_VERSION = "v13-wps-user-agent-subscription-refresh"
+PATCH_VERSION = "v14-pauk-branding-and-icon"
+PAUK_ICON_PATHS = '''\
+    <path android:fillColor="#00000000" android:strokeColor="#70DCCC" android:strokeWidth="3.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M54,22 L81,37.5 L81,70.5 L54,86 L27,70.5 L27,37.5 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#70DCCC" android:strokeWidth="3.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M27,37.5 L54,54 L81,37.5 M54,22 L54,86 M27,70.5 L54,54 L81,70.5" />
+    <path android:fillColor="#70DCCC" android:pathData="M54,19 C55.7,19 57,20.3 57,22 C57,23.7 55.7,25 54,25 C52.3,25 51,23.7 51,22 C51,20.3 52.3,19 54,19 Z M81,34.5 C82.7,34.5 84,35.8 84,37.5 C84,39.2 82.7,40.5 81,40.5 C79.3,40.5 78,39.2 78,37.5 C78,35.8 79.3,34.5 81,34.5 Z M81,67.5 C82.7,67.5 84,68.8 84,70.5 C84,72.2 82.7,73.5 81,73.5 C79.3,73.5 78,72.2 78,70.5 C78,68.8 79.3,67.5 81,67.5 Z M54,83 C55.7,83 57,84.3 57,86 C57,87.7 55.7,89 54,89 C52.3,89 51,87.7 51,86 C51,84.3 52.3,83 54,83 Z M27,67.5 C28.7,67.5 30,68.8 30,70.5 C30,72.2 28.7,73.5 27,73.5 C25.3,73.5 24,72.2 24,70.5 C24,68.8 25.3,67.5 27,67.5 Z M27,34.5 C28.7,34.5 30,35.8 30,37.5 C30,39.2 28.7,40.5 27,40.5 C25.3,40.5 24,39.2 24,37.5 C24,35.8 25.3,34.5 27,34.5 Z" />
+    <path android:fillColor="#EAFBF7" android:pathData="M54,46 C58.4,46 62,49.6 62,54 C62,58.4 58.4,62 54,62 C49.6,62 46,58.4 46,54 C46,49.6 49.6,46 54,46 Z" />
+    <path android:fillColor="#70DCCC" android:pathData="M54,50 C56.2,50 58,51.8 58,54 C58,56.2 56.2,58 54,58 C51.8,58 50,56.2 50,54 C50,51.8 51.8,50 54,50 Z" />
+'''
 
 
 def require(path: Path) -> Path:
@@ -72,10 +78,12 @@ def patch_gradle(app_dir: Path) -> None:
         flags=re.MULTILINE,
     )
     text = text.replace('buildConfigField("String", "DISTRIBUTION", "\\"F-Droid\\"")',
-                        'buildConfigField("String", "DISTRIBUTION", "\\"WPS\\"")')
+                        'buildConfigField("String", "DISTRIBUTION", "\\"PAUK\\"")')
     text = text.replace('buildConfigField("String", "DISTRIBUTION", "\\"Play Store\\"")',
-                        'buildConfigField("String", "DISTRIBUTION", "\\"WPS\\"")')
-    text = text.replace('output.outputFileName = "v2rayNG_', 'output.outputFileName = "WPS_')
+                        'buildConfigField("String", "DISTRIBUTION", "\\"PAUK\\"")')
+    text = text.replace('buildConfigField("String", "DISTRIBUTION", "\\"WPS\\"")',
+                        'buildConfigField("String", "DISTRIBUTION", "\\"PAUK\\"")')
+    text = text.replace('output.outputFileName = "v2rayNG_', 'output.outputFileName = "PAUK_')
     path.write_text(text, encoding="utf-8")
 
 
@@ -101,7 +109,7 @@ def patch_app_name(app_dir: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             '<?xml version="1.0" encoding="utf-8"?>\n'
-            '<resources><string name="app_name" translatable="false">WPS</string></resources>\n',
+            '<resources><string name="app_name" translatable="false">PAUK</string></resources>\n',
             encoding="utf-8",
         )
     if changed == 0:
@@ -138,11 +146,11 @@ def patch_http_util(app_dir: Path) -> None:
     newline = "\r\n" if "\r\n" in source else "\n"
 
     upstream_user_agent = "\"v2rayNG/${BuildConfig.VERSION_NAME}\""
-    wps_user_agent = "\"WPS/${BuildConfig.VERSION_NAME}\""
-    if wps_user_agent not in source:
+    pauk_user_agent = "\"PAUK/${BuildConfig.VERSION_NAME}\""
+    if pauk_user_agent not in source:
         if upstream_user_agent not in source:
             raise RuntimeError("Could not find the upstream subscription User-Agent")
-        source = source.replace(upstream_user_agent, wps_user_agent, 1)
+        source = source.replace(upstream_user_agent, pauk_user_agent, 1)
 
     for import_line in (
         "import android.os.Build",
@@ -277,7 +285,7 @@ def patch_http_util(app_dir: Path) -> None:
 
 
 def patch_notification_manager(app_dir: Path) -> None:
-    """Use the WPS logo for the foreground VPN notification."""
+    """Use PAUK launcher branding in the foreground VPN notification."""
     path = require(app_dir / "src/main/java/com/v2ray/ang/handler/NotificationManager.kt")
     source = path.read_text(encoding="utf-8")
     newline = "\r\n" if "\r\n" in source else "\n"
@@ -296,7 +304,7 @@ def patch_notification_manager(app_dir: Path) -> None:
     branded_lines = (
         f"{indent}.setSmallIcon(R.drawable.wps_ic_notification){newline}"
         f"{indent}.setLargeIcon(BitmapFactory.decodeResource(service.resources, R.mipmap.ic_launcher)){newline}"
-        f"{indent}.setColor(Color.parseColor(\"#18DDD0\"))"
+        f"{indent}.setColor(Color.parseColor(\"#70DCCC\"))"
     )
     source = source[:match.start()] + branded_lines + source[match.end():]
 
@@ -416,7 +424,7 @@ def patch_main_activity(app_dir: Path) -> None:
     text = replace_once(
         text,
         "            binding.fab.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_active))\n            binding.fab.contentDescription = getString(R.string.action_stop_service)\n            setTestState(getString(R.string.connection_connected))",
-        """            binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FF7A12"))
+        """            binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#70DCCC"))
             binding.fab.setTextColor(Color.parseColor("#071012"))
             binding.fab.iconTint = ColorStateList.valueOf(Color.parseColor("#071012"))
             binding.fab.strokeWidth = 0
@@ -446,7 +454,7 @@ def patch_main_activity(app_dir: Path) -> None:
     methods = '''    private fun configureWpsWindow() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.TRANSPARENT
-        window.navigationBarColor = Color.parseColor("#020506")
+        window.navigationBarColor = Color.parseColor("#07131E")
         WindowInsetsControllerCompat(window, window.decorView).apply {
             isAppearanceLightStatusBars = false
             isAppearanceLightNavigationBars = false
@@ -493,15 +501,15 @@ def patch_main_activity(app_dir: Path) -> None:
         binding.btnRefreshSubscription.isEnabled = hasKey
 
         if (hasKey) {
-            binding.btnAddKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#0B181A"))
-            binding.btnAddKey.setTextColor(Color.parseColor("#19E2D5"))
-            binding.btnAddKey.iconTint = ColorStateList.valueOf(Color.parseColor("#19E2D5"))
-            binding.btnAddKey.strokeColor = ColorStateList.valueOf(Color.parseColor("#365B5D"))
+            binding.btnAddKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#152838"))
+            binding.btnAddKey.setTextColor(Color.parseColor("#70DCCC"))
+            binding.btnAddKey.iconTint = ColorStateList.valueOf(Color.parseColor("#70DCCC"))
+            binding.btnAddKey.strokeColor = ColorStateList.valueOf(Color.parseColor("#38586D"))
             binding.btnAddKey.strokeWidth = 2
         } else {
-            binding.btnAddKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#19E2D5"))
-            binding.btnAddKey.setTextColor(Color.parseColor("#001716"))
-            binding.btnAddKey.iconTint = ColorStateList.valueOf(Color.parseColor("#001716"))
+            binding.btnAddKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#70DCCC"))
+            binding.btnAddKey.setTextColor(Color.parseColor("#06131C"))
+            binding.btnAddKey.iconTint = ColorStateList.valueOf(Color.parseColor("#06131C"))
             binding.btnAddKey.strokeWidth = 0
         }
 
@@ -511,15 +519,15 @@ def patch_main_activity(app_dir: Path) -> None:
             binding.fab.isEnabled = canConnect
             binding.fab.alpha = if (canConnect) 1.0f else 0.72f
             if (canConnect) {
-                binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#19E2D5"))
-                binding.fab.setTextColor(Color.parseColor("#001716"))
-                binding.fab.iconTint = ColorStateList.valueOf(Color.parseColor("#001716"))
+                binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#70DCCC"))
+                binding.fab.setTextColor(Color.parseColor("#06131C"))
+                binding.fab.iconTint = ColorStateList.valueOf(Color.parseColor("#06131C"))
                 binding.fab.strokeWidth = 0
             } else {
-                binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#10191B"))
-                binding.fab.setTextColor(Color.parseColor("#536367"))
-                binding.fab.iconTint = ColorStateList.valueOf(Color.parseColor("#536367"))
-                binding.fab.strokeColor = ColorStateList.valueOf(Color.parseColor("#243436"))
+                binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#132331"))
+                binding.fab.setTextColor(Color.parseColor("#8295A5"))
+                binding.fab.iconTint = ColorStateList.valueOf(Color.parseColor("#8295A5"))
+                binding.fab.strokeColor = ColorStateList.valueOf(Color.parseColor("#263A4A"))
                 binding.fab.strokeWidth = 2
             }
             when {
@@ -724,7 +732,7 @@ def patch_main_activity(app_dir: Path) -> None:
             val servers = try {
                 MmkvManager.removeSubscription(WPS_USER_SUBSCRIPTION_ID)
                 val subItem = SubscriptionItem().apply {
-                    remarks = "WPS"
+                    remarks = "PAUK"
                     this.url = url
                     enabled = true
                 }
@@ -938,7 +946,7 @@ class WpsServerAdapter(
             name.text = item.name
             details.text = item.details
             selected.isVisible = isSelected
-            card.strokeColor = Color.parseColor(if (isSelected) "#19E2D5" else "#253A3D")
+            card.strokeColor = Color.parseColor(if (isSelected) "#70DCCC" else "#2B4052")
             card.strokeWidth = if (isSelected) dp(2) else dp(1)
 
             val isPinging = item.guid in pingingGuids && item.delayMillis == 0L
@@ -965,8 +973,8 @@ class WpsServerAdapter(
                 }
                 else -> {
                     ping.text = "ПИНГ"
-                    ping.setTextColor(Color.parseColor("#19E2D5"))
-                    ping.iconTint = android.content.res.ColorStateList.valueOf(Color.parseColor("#19E2D5"))
+                    ping.setTextColor(Color.parseColor("#70DCCC"))
+                    ping.iconTint = android.content.res.ColorStateList.valueOf(Color.parseColor("#70DCCC"))
                 }
             }
 
@@ -1043,8 +1051,8 @@ def write_layouts(app_dir: Path) -> None:
                         android:layout_height="wrap_content"
                         android:fontFamily="sans-serif-black"
                         android:includeFontPadding="true"
-                        android:letterSpacing="0.07"
-                        android:text="WPS"
+                        android:letterSpacing="0.14"
+                        android:text="PAUK"
                         android:textColor="#FFFFFF"
                         android:textSize="30sp" />
 
@@ -1054,10 +1062,10 @@ def write_layouts(app_dir: Path) -> None:
                         android:layout_marginTop="-4dp"
                         android:fontFamily="sans-serif-medium"
                         android:includeFontPadding="true"
-                        android:letterSpacing="0.34"
-                        android:text="VPN"
-                        android:textColor="#19E2D5"
-                        android:textSize="12sp" />
+                        android:letterSpacing="0.10"
+                        android:text="ЗАЩИЩЁННАЯ СЕТЬ"
+                        android:textColor="#70DCCC"
+                        android:textSize="10sp" />
                 </LinearLayout>
 
                 <FrameLayout
@@ -1082,9 +1090,9 @@ def write_layouts(app_dir: Path) -> None:
                         android:layout_height="136dp"
                         android:layout_gravity="center_horizontal|top"
                         android:layout_marginTop="6dp"
-                        android:contentDescription="WPS"
+                        android:contentDescription="PAUK"
                         android:scaleType="fitCenter"
-                        android:src="@drawable/wps_logo" />
+                        android:src="@drawable/pauk_mark" />
                 </FrameLayout>
 
                 <TextView
@@ -1119,7 +1127,7 @@ def write_layouts(app_dir: Path) -> None:
                         android:lineSpacingExtra="2dp"
                         android:maxLines="3"
                         android:text="Добавьте свою подписку для подключения к VPN-сети"
-                        android:textColor="#AAB9BE"
+                        android:textColor="#CED7DC"
                         android:textSize="14sp" />
                 </LinearLayout>
 
@@ -1142,15 +1150,15 @@ def write_layouts(app_dir: Path) -> None:
                         android:paddingStart="14dp"
                         android:paddingEnd="14dp"
                         android:text="ДОБАВИТЬ КЛЮЧ"
-                        android:textColor="#001716"
+                        android:textColor="#06131C"
                         android:textSize="14sp"
-                        app:backgroundTint="#19E2D5"
+                        app:backgroundTint="#70DCCC"
                         app:cornerRadius="18dp"
                         app:icon="@drawable/wps_ic_add"
                         app:iconGravity="textStart"
                         app:iconPadding="9dp"
                         app:iconSize="22dp"
-                        app:iconTint="#001716" />
+                        app:iconTint="#06131C" />
 
                     <Space
                         android:id="@+id/keyActionSpacer"
@@ -1172,14 +1180,14 @@ def write_layouts(app_dir: Path) -> None:
                         android:textColor="#93A3A7"
                         android:textSize="13sp"
                         android:visibility="gone"
-                        app:backgroundTint="#0B181A"
+                        app:backgroundTint="#152838"
                         app:cornerRadius="18dp"
                         app:icon="@drawable/wps_ic_delete"
                         app:iconGravity="textStart"
                         app:iconPadding="8dp"
                         app:iconSize="21dp"
                         app:iconTint="#93A3A7"
-                        app:strokeColor="#365B5D"
+                        app:strokeColor="#38586D"
                         app:strokeWidth="1dp" />
                 </LinearLayout>
 
@@ -1195,7 +1203,7 @@ def write_layouts(app_dir: Path) -> None:
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
                     android:text="ОБНОВИТЬ ПОДПИСКУ"
-                    android:textColor="#19E2D5"
+                    android:textColor="#70DCCC"
                     android:textSize="13sp"
                     android:visibility="gone"
                     app:cornerRadius="16dp"
@@ -1203,8 +1211,8 @@ def write_layouts(app_dir: Path) -> None:
                     app:iconGravity="textStart"
                     app:iconPadding="9dp"
                     app:iconSize="21dp"
-                    app:iconTint="#19E2D5"
-                    app:strokeColor="#365B5D"
+                    app:iconTint="#70DCCC"
+                    app:strokeColor="#38586D"
                     app:strokeWidth="1dp" />
 
                 <TextView
@@ -1215,7 +1223,7 @@ def write_layouts(app_dir: Path) -> None:
                     android:gravity="center"
                     android:maxLines="2"
                     android:text="Клиент добавляет свой ключ самостоятельно"
-                    android:textColor="#718086"
+                    android:textColor="#91A1AE"
                     android:textSize="12sp" />
 
                 <LinearLayout
@@ -1237,7 +1245,7 @@ def write_layouts(app_dir: Path) -> None:
                         android:paddingStart="14dp"
                         android:paddingEnd="14dp"
                         android:text="ИЛИ"
-                        android:textColor="#718086"
+                        android:textColor="#91A1AE"
                         android:textSize="11sp" />
 
                     <View
@@ -1261,16 +1269,16 @@ def write_layouts(app_dir: Path) -> None:
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
                     android:text="ПОДКЛЮЧИТЬ"
-                    android:textColor="#536367"
+                    android:textColor="#8295A5"
                     android:textSize="15sp"
-                    app:backgroundTint="#10191B"
+                    app:backgroundTint="#132331"
                     app:cornerRadius="18dp"
                     app:icon="@drawable/ic_play_24dp"
                     app:iconGravity="textStart"
                     app:iconPadding="12dp"
                     app:iconSize="24dp"
-                    app:iconTint="#536367"
-                    app:strokeColor="#243436"
+                    app:iconTint="#8295A5"
+                    app:strokeColor="#263A4A"
                     app:strokeWidth="1dp" />
 
                 <TextView
@@ -1284,8 +1292,8 @@ def write_layouts(app_dir: Path) -> None:
                     android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
                     android:gravity="center"
-                    android:text="Ваш VPN • Ваш ключ • Ваша свобода"
-                    android:textColor="#58686D"
+                    android:text="ЛИЧНАЯ ЗАЩИТА PAUK"
+                    android:textColor="#A7B6C1"
                     android:textSize="11sp" />
 
                 <LinearLayout
@@ -1322,7 +1330,7 @@ def write_layouts(app_dir: Path) -> None:
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:text="0 серверов"
-                                android:textColor="#718086"
+                                android:textColor="#91A1AE"
                                 android:textSize="12sp" />
                         </LinearLayout>
 
@@ -1335,15 +1343,15 @@ def write_layouts(app_dir: Path) -> None:
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:text="ПРОВЕРИТЬ ВСЕ"
-                            android:textColor="#19E2D5"
+                            android:textColor="#70DCCC"
                             android:textSize="11sp"
                             app:cornerRadius="14dp"
                             app:icon="@drawable/wps_ic_ping"
                             app:iconGravity="textStart"
                             app:iconPadding="6dp"
                             app:iconSize="18dp"
-                            app:iconTint="#19E2D5"
-                            app:strokeColor="#365B5D"
+                            app:iconTint="#70DCCC"
+                            app:strokeColor="#38586D"
                             app:strokeWidth="1dp" />
                     </LinearLayout>
 
@@ -1353,7 +1361,7 @@ def write_layouts(app_dir: Path) -> None:
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:text="Нажмите ПИНГ для отдельного сервера"
-                        android:textColor="#718086"
+                        android:textColor="#91A1AE"
                         android:textSize="12sp" />
 
                     <androidx.recyclerview.widget.RecyclerView
@@ -1386,12 +1394,12 @@ def write_layouts(app_dir: Path) -> None:
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="Главная"
-                android:textColor="#19E2D5"
+                android:textColor="#70DCCC"
                 android:textSize="11sp"
                 app:icon="@drawable/wps_ic_home"
                 app:iconGravity="top"
                 app:iconPadding="2dp"
-                app:iconTint="#19E2D5" />
+                app:iconTint="#70DCCC" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/navLogs"
@@ -1401,12 +1409,12 @@ def write_layouts(app_dir: Path) -> None:
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="Журналы"
-                android:textColor="#849499"
+                android:textColor="#9DAEBB"
                 android:textSize="11sp"
                 app:icon="@drawable/wps_ic_log"
                 app:iconGravity="top"
                 app:iconPadding="2dp"
-                app:iconTint="#849499" />
+                app:iconTint="#9DAEBB" />
 
         </LinearLayout>
 
@@ -1450,10 +1458,10 @@ def write_layouts(app_dir: Path) -> None:
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
-    app:cardBackgroundColor="#0B1517"
+    app:cardBackgroundColor="#111F2C"
     app:cardCornerRadius="16dp"
     app:cardElevation="0dp"
-    app:strokeColor="#253A3D"
+    app:strokeColor="#2B4052"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -1475,7 +1483,7 @@ def write_layouts(app_dir: Path) -> None:
                 android:layout_gravity="center"
                 android:contentDescription="Сервер"
                 android:src="@drawable/wps_ic_server"
-                app:tint="#19E2D5" />
+                app:tint="#70DCCC" />
         </FrameLayout>
 
         <LinearLayout
@@ -1502,7 +1510,7 @@ def write_layouts(app_dir: Path) -> None:
                 android:layout_marginTop="4dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textColor="#718086"
+                android:textColor="#91A1AE"
                 android:textSize="11sp" />
         </LinearLayout>
 
@@ -1515,14 +1523,14 @@ def write_layouts(app_dir: Path) -> None:
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:text="ПИНГ"
-            android:textColor="#19E2D5"
+            android:textColor="#70DCCC"
             android:textSize="12sp"
             app:cornerRadius="12dp"
             app:icon="@drawable/wps_ic_ping"
             app:iconGravity="textStart"
             app:iconPadding="3dp"
             app:iconSize="16dp"
-            app:iconTint="#19E2D5" />
+            app:iconTint="#70DCCC" />
 
         <ImageView
             android:id="@+id/ivServerSelected"
@@ -1532,7 +1540,7 @@ def write_layouts(app_dir: Path) -> None:
             android:contentDescription="Выбран"
             android:src="@drawable/wps_ic_selected"
             android:visibility="gone"
-            app:tint="#19E2D5" />
+            app:tint="#70DCCC" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
 """, encoding="utf-8")
@@ -1556,7 +1564,7 @@ def write_layouts(app_dir: Path) -> None:
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Ссылка подписки"
-        app:boxStrokeColor="#19E2D5"
+        app:boxStrokeColor="#70DCCC"
         app:endIconMode="clear_text"
         app:helperText="Пример: https://sub.example.com/ваш-ключ">
 
@@ -1579,26 +1587,26 @@ def write_drawables(app_dir: Path) -> None:
     files = {
         "wps_background.xml": '''<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <gradient android:angle="315" android:startColor="#010304" android:centerColor="#061214" android:endColor="#020506" />
+    <gradient android:angle="315" android:startColor="#050D17" android:centerColor="#0C1927" android:endColor="#07131E" />
 </shape>\n''',
         "wps_logo_glow.xml": '''<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <gradient android:type="radial" android:gradientRadius="92dp" android:centerColor="#4D19E2D5" android:endColor="#0019E2D5" />
+        <gradient android:type="radial" android:gradientRadius="92dp" android:centerColor="#4D70DCCC" android:endColor="#0070DCCC" />
 </shape>\n''',
         "wps_floor_glow.xml": '''<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <gradient android:type="radial" android:gradientRadius="68dp" android:centerColor="#8019E2D5" android:endColor="#0019E2D5" />
+        <gradient android:type="radial" android:gradientRadius="68dp" android:centerColor="#8070DCCC" android:endColor="#0070DCCC" />
 </shape>\n''',
         "wps_icon_button.xml": '''<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#0B1416" />
+        <solid android:color="#152431" />
     <corners android:radius="15dp" />
-    <stroke android:width="1dp" android:color="#343A3D" />
+    <stroke android:width="1dp" android:color="#2C3D4C" />
 </shape>\n''',
         "wps_bottom_bar.xml": '''<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#F2090D0F" />
-    <stroke android:width="1dp" android:color="#1E394044" />
+    <solid android:color="#F20A1320" />
+        <stroke android:width="1dp" android:color="#202D3B40" />
 </shape>\n''',
         "wps_ic_add.xml": '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FF000000" android:pathData="M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></vector>\n''',
         "wps_ic_home.xml": '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M12,3 2,12h3v8h6v-5h2v5h6v-8h3L12,3zM17,18h-2v-5H9v5H7v-7.1l5,-4.5 5,4.5V18z"/></vector>\n''',
@@ -1606,9 +1614,9 @@ def write_drawables(app_dir: Path) -> None:
         "wps_ic_delete.xml": '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M6,7h12v14H6V7zM8,9v10h8V9H8zM9,3h6l1,2h4v2H4V5h4l1,-2z"/></vector>\n''',
         "wps_server_icon_bg.xml": '''<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#102326" />
+    <solid android:color="#172B39" />
     <corners android:radius="12dp" />
-    <stroke android:width="1dp" android:color="#315154" />
+    <stroke android:width="1dp" android:color="#31495B" />
 </shape>\n''',
         "wps_ic_server.xml": '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M4,3h16v6H4V3zM6,5v2h2V5H6zM4,10h16v6H4v-6zM6,12v2h2v-2H6zM4,17h16v4H4v-4zM6,18v2h2v-2H6z"/></vector>\n''',
         "wps_ic_ping.xml": '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M12,21a9,9 0,1 1,9 -9h-2a7,7 0,1 0,-2.05 4.95l1.42,1.42A8.96,8.96 0,0 1,12 21zM13,7v4.59l3.2,3.2 -1.41,1.41L11,12.41V7h2z"/></vector>\n''',
@@ -1616,49 +1624,48 @@ def write_drawables(app_dir: Path) -> None:
         "wps_ic_selected.xml": '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M9,16.17 4.83,12l-1.42,1.41L9,19 21,7l-1.41,-1.41z"/></vector>\n''',
         "wps_ic_settings.xml": '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M19.4,13a7.9,7.9 0,0 0,0.1 -1,7.9 7.9,0 0,0 -0.1,-1l2.1,-1.7 -2,-3.4 -2.5,1a8,8 0,0 0,-1.7 -1L15,3h-4l-0.4,2.9a8,8 0,0 0,-1.7 1l-2.5,-1 -2,3.4L6.5,11a7.9,7.9 0,0 0,-0.1 1,7.9 7.9,0 0,0 0.1,1l-2.1,1.7 2,3.4 2.5,-1a8,8 0,0 0,1.7 1L11,21h4l0.4,-2.9a8,8 0,0 0,1.7 -1l2.5,1 2,-3.4L19.4,13zM13,16a4,4 0,1 1,0 -8,4 4,0 0,1 0,8zM13,14a2,2 0,1 0,0 -4,2 2,0 0,0 0,4z"/></vector>\n''',
     }
+    for name in ("pauk_mark.xml", "pauk_launcher_foreground.xml"):
+        files[name] = f'''<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+{PAUK_ICON_PATHS}</vector>
+'''
+    files["wps_ic_notification.xml"] = '''<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd" android:pathData="M12,1.8 L21.2,7.1 L21.2,16.9 L12,22.2 L2.8,16.9 L2.8,7.1 Z M12,5.1 L5.7,8.7 L5.7,15.3 L12,18.9 L18.3,15.3 L18.3,8.7 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12,9 C13.7,9 15,10.3 15,12 C15,13.7 13.7,15 12,15 C10.3,15 9,13.7 9,12 C9,10.3 10.3,9 12,9 Z" />
+</vector>
+'''
     for name, content in files.items():
         (drawable / name).write_text(content, encoding="utf-8")
 
 
 def install_resources(app_dir: Path, kit_root: Path) -> None:
     res = app_dir / "src/main/res"
-    drawable_nodpi = res / "drawable-nodpi"
-    drawable_nodpi.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(require(kit_root / "assets/wps_logo.png"), drawable_nodpi / "wps_logo.png")
-    shutil.copy2(require(kit_root / "assets/wps_launcher_foreground.png"), drawable_nodpi / "wps_launcher_foreground.png")
-
-    icons_root = require(kit_root / "assets/icons")
-    for source_dir in icons_root.glob("mipmap-*"):
-        target = res / source_dir.name
-        target.mkdir(parents=True, exist_ok=True)
-        for icon in source_dir.glob("*.png"):
-            shutil.copy2(icon, target / icon.name)
-
-    notification_root = require(kit_root / "assets/notification")
-    notification_dirs = list(notification_root.glob("drawable-*"))
-    if not notification_dirs:
-        raise RuntimeError("WPS notification icon assets were not found")
-    for source_dir in notification_dirs:
-        target = res / source_dir.name
-        target.mkdir(parents=True, exist_ok=True)
-        for icon in source_dir.glob("*.png"):
-            shutil.copy2(icon, target / icon.name)
+    fallback = res / "mipmap-anydpi-v21"
+    fallback.mkdir(parents=True, exist_ok=True)
+    fallback_xml = f'''<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#07131E" android:pathData="M0,0 L108,0 L108,108 L0,108 Z" />
+{PAUK_ICON_PATHS}</vector>
+'''
+    (fallback / "ic_launcher.xml").write_text(fallback_xml, encoding="utf-8")
+    (fallback / "ic_launcher_round.xml").write_text(fallback_xml, encoding="utf-8")
 
     adaptive = res / "mipmap-anydpi-v26"
     adaptive.mkdir(parents=True, exist_ok=True)
     adaptive_xml = '''<?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/wps_launcher_background" />
-    <foreground android:drawable="@drawable/wps_launcher_foreground" />
+    <background android:drawable="@color/pauk_launcher_background" />
+    <foreground android:drawable="@drawable/pauk_launcher_foreground" />
 </adaptive-icon>\n'''
     (adaptive / "ic_launcher.xml").write_text(adaptive_xml, encoding="utf-8")
     (adaptive / "ic_launcher_round.xml").write_text(adaptive_xml, encoding="utf-8")
 
     values = res / "values"
     values.mkdir(parents=True, exist_ok=True)
-    (values / "wps_colors.xml").write_text('''<?xml version="1.0" encoding="utf-8"?>
+    (values / "pauk_colors.xml").write_text('''<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="wps_launcher_background">#050A0B</color>
+    <color name="pauk_launcher_background">#07131E</color>
 </resources>\n''', encoding="utf-8")
 
 
@@ -1672,7 +1679,7 @@ def main() -> int:
     kit_root = args.kit_root.resolve()
     app_dir = require(root / "app")
 
-    print(f"WPS patch version: {PATCH_VERSION}")
+    print(f"PAUK patch version: {PATCH_VERSION}")
     patch_gradle(app_dir)
     patch_app_name(app_dir)
     patch_manifest(app_dir)
@@ -1685,7 +1692,7 @@ def main() -> int:
     write_drawables(app_dir)
     install_resources(app_dir, kit_root)
 
-    print("WPS v13 applied: WPS User-Agent and manual full subscription refresh.")
+    print("PAUK v14 applied: PAUK branding, app icon and manual full subscription refresh.")
     print("No subscription URL is embedded in the application.")
     return 0
 

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">PAUK VPN</title>
+  <rect width="512" height="512" rx="116" fill="#07131e"/>
+  <g fill="none" stroke="#70dccc" stroke-linecap="round" stroke-linejoin="round" stroke-width="18">
+    <path d="M256 104 384 178v156l-128 74-128-74V178z"/>
+    <path d="m128 178 128 78 128-78M256 104v304M128 334l128-78 128 78"/>
+  </g>
+  <g fill="#70dccc">
+    <circle cx="256" cy="104" r="14"/><circle cx="384" cy="178" r="14"/>
+    <circle cx="384" cy="334" r="14"/><circle cx="256" cy="408" r="14"/>
+    <circle cx="128" cy="334" r="14"/><circle cx="128" cy="178" r="14"/>
+  </g>
+  <circle cx="256" cy="256" r="38" fill="#eafbf7"/>
+  <circle cx="256" cy="256" r="19" fill="#70dccc"/>
+</svg>
